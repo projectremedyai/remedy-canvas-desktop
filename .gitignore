@@ -1,0 +1,98 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# Node / Tauri frontend
+node_modules/
+dist/
+.vite/
+.cache/
+
+# PyInstaller intermediate output
+sidecar/build/
+
+# Tesseract training data that LiteParse's OCR pipeline drops in cwd
+# when it sees an image-only PDF. Not source; re-downloaded on demand.
+eng.traineddata
+/*.traineddata
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Bundled runtime artifacts (downloaded or populated at build/first launch)
+models/*
+!models/.gitkeep
+vendor/ollama/
+vendor/liteparse/
+vendor/libreoffice/
+vendor/imagemagick/
+vendor/chromium/
+
+# Installer outputs
+installers/*
+!installers/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json.example
+
+# Secrets
+.env
+.env.*
+.env.local
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+service-account*.json
+firebase-service-account*.json
+credentials*.json
+client_secret*.json
+.npmrc
+.yarnrc
+
+# Firebase CLI debug logs
+firebase-debug.log
+firebase-debug.*.log
+
+# Claude Code local tooling state
+.claude/
+
+# Clean seed repo exclusions
+*.md
+docs/
+doc/
+knowledge-base/
+knowledge_base/
+*knowledge-base*/
+tests/
+test/
+__tests__/
+test_*.py
+*_test.py
+*.test.*
+*.spec.*
+!README.md
+
+# Screenshots / demo recordings — not part of source
+screenshots/

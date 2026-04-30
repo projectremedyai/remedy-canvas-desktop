@@ -1,0 +1,117 @@
+name: Build Windows MSI
+
+# Phase 7B-Windows — produces an unsigned .msi installer on every push.
+#
+# Parity level with macOS today:
+#   OK  Python sidecar bundled via PyInstaller
+#   OK  Tauri .msi via WiX
+#   --  Bundled Ollama (see scripts/fetch-runtimes.ps1 TODO)
+#   --  Bundled LiteParse (same)
+#   --  Code signing (needs a Windows signing cert in GitHub secrets)
+#
+# End users still need Ollama installed separately on Windows until the
+# Windows-side runtime bundling lands. Everything else (body scan, IMSCC
+# parse/build, transform, render scan) works out of the box once they
+# add Playwright chromium via `playwright install chromium` post-install.
+#
+# Security note: this workflow does NOT consume any untrusted inputs
+# (no github.event.*.title, *.body, head_ref, etc.) in run: commands.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "sidecar/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/build-windows.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      UV_SYSTEM_PYTHON: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry + target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install sidecar deps (dev only — no render/documents in CI)
+        working-directory: sidecar
+        run: uv sync --extra dev
+
+      - name: Freeze the Python sidecar
+        working-directory: sidecar
+        shell: pwsh
+        run: |
+          uv run python build_binary.py
+          $triple = "x86_64-pc-windows-msvc"
+          $source = "dist/bin/crd-sidecar.exe"
+          $target = "dist/bin/crd-sidecar-$triple.exe"
+          if (Test-Path $source) {
+            Move-Item $source $target -Force
+          } elseif (-not (Test-Path $target)) {
+            Write-Error "PyInstaller output not found under sidecar/dist/bin/"
+            exit 1
+          }
+          Write-Host "Sidecar binary at $target"
+          Get-Item $target | Select-Object FullName, Length
+
+      - name: Run sidecar tests
+        working-directory: sidecar
+        run: uv run pytest -m "not integration"
+
+      - name: Build Tauri .msi
+        run: pnpm tauri build --target x86_64-pc-windows-msvc --bundles msi
+        env:
+          TAURI_BUNDLE_TARGETS: msi
+
+      - name: Show artifact
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi" -ErrorAction Stop
+          Write-Host "Built MSI: $($msi.FullName)"
+          Write-Host "Size: $([math]::Round($msi.Length / 1MB, 2)) MB"
+
+      - name: Upload .msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: remedy-canvas-desktop-msi
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+          retention-days: 14
+          if-no-files-found: error

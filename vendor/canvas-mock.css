@@ -1,0 +1,156 @@
+/* canvas-mock.css
+ *
+ * Minimal CSS approximation of how Canvas LMS renders wiki page content.
+ * Used by the desktop app's rendered scanner to give axe-core a Canvas-like
+ * visual context — colors, fonts, link styling, button defaults — so that
+ * contrast / focus / target-size violations correspond to what instructors
+ * see in live Canvas.
+ *
+ * This is intentionally a subset. Canvas's production stylesheet is hundreds
+ * of KB and churns. We only encode the values that meaningfully change axe's
+ * verdicts:
+ *   - default body text color / background
+ *   - default link color (new Canvas teal)
+ *   - heading colors and sizes
+ *   - button/form element defaults
+ *
+ * Tune this over time as we see real-world misses. The goal is parity with
+ * live Canvas on body-text contrast, not pixel-perfect chrome.
+ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  color: #2d3b45;
+  font-family: "Lato Extended", "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.ic-app {
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+.ic-app-main-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+article.user_content {
+  color: #2d3b45;
+  background-color: #ffffff;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+article.user_content h1,
+article.user_content h2,
+article.user_content h3,
+article.user_content h4,
+article.user_content h5,
+article.user_content h6 {
+  color: #2d3b45;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 1em 0 0.5em;
+}
+
+article.user_content h1 { font-size: 2.125em; }
+article.user_content h2 { font-size: 1.625em; }
+article.user_content h3 { font-size: 1.375em; }
+article.user_content h4 { font-size: 1.125em; }
+article.user_content h5 { font-size: 1em; }
+article.user_content h6 { font-size: 0.875em; }
+
+article.user_content p { margin: 0 0 1em; }
+
+article.user_content a {
+  color: #0374b5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+article.user_content a:visited { color: #6f42c1; }
+article.user_content a:focus {
+  outline: 2px solid #0374b5;
+  outline-offset: 2px;
+}
+
+article.user_content button,
+article.user_content .Button,
+article.user_content input[type="button"],
+article.user_content input[type="submit"] {
+  background-color: #e8eaec;
+  color: #2d3b45;
+  border: 1px solid #c7cdd1;
+  border-radius: 3px;
+  padding: 6px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 24px;
+  min-width: 24px;
+}
+
+article.user_content input[type="text"],
+article.user_content input[type="email"],
+article.user_content input[type="url"],
+article.user_content input[type="search"],
+article.user_content input[type="password"],
+article.user_content textarea,
+article.user_content select {
+  color: #2d3b45;
+  background-color: #ffffff;
+  border: 1px solid #c7cdd1;
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-size: 14px;
+  min-height: 24px;
+}
+
+article.user_content table {
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+article.user_content th,
+article.user_content td {
+  border: 1px solid #c7cdd1;
+  padding: 6px 10px;
+  color: #2d3b45;
+}
+article.user_content th {
+  background-color: #f5f5f5;
+  font-weight: 700;
+}
+
+article.user_content img {
+  max-width: 100%;
+  height: auto;
+}
+
+article.user_content ul,
+article.user_content ol {
+  margin: 0 0 1em;
+  padding-left: 2em;
+}
+
+article.user_content blockquote {
+  border-left: 4px solid #c7cdd1;
+  color: #4d5b65;
+  margin: 1em 0;
+  padding: 0.5em 1em;
+}
+
+article.user_content code,
+article.user_content pre {
+  font-family: Menlo, Consolas, "Liberation Mono", monospace;
+  background-color: #f5f5f5;
+  color: #2d3b45;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+article.user_content pre {
+  padding: 12px;
+  overflow-x: auto;
+}

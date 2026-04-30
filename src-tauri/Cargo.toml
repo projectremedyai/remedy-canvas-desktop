@@ -1,0 +1,29 @@
+[package]
+name = "remedy-canvas-desktop"
+version = "0.1.0"
+description = "Remedy Canvas Desktop — offline IMSCC accessibility remediation"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# `_lib` suffix keeps the lib name distinct from the bin name
+# (matters on Windows — see https://github.com/rust-lang/cargo/issues/8519).
+name = "crd_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+tokio = { version = "1", features = ["rt", "macros", "io-util", "process", "time", "sync"] }
+futures-util = "0.3"
+sysinfo = { version = "0.32", default-features = false, features = ["system"] }
