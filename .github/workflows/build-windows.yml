@@ -94,6 +94,10 @@ jobs:
         working-directory: sidecar
         run: uv run pytest -m "not integration"
 
+      - name: Create Windows runtime placeholders
+        shell: pwsh
+        run: ./scripts/fetch-runtimes.ps1
+
       - name: Build Tauri .msi
         run: pnpm tauri build --target x86_64-pc-windows-msvc --bundles msi
         env:
