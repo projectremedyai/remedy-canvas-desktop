@@ -92,6 +92,10 @@ test_*.py
 *_test.py
 *.test.*
 *.spec.*
+!sidecar/tests/
+!sidecar/tests/**
+sidecar/tests/**/__pycache__/
+sidecar/tests/**/*.py[cod]
 !README.md
 
 # Screenshots / demo recordings — not part of source
