@@ -258,3 +258,7 @@ The Rust shell respects these at launch:
 - `CRD_SIDECAR_PYTHON` — **dev builds only.** Override the Python
   interpreter used in `pnpm tauri dev`. Release builds ignore this and spawn
   the bundled PyInstaller binary via Tauri's `externalBin`.
+
+## License
+
+MIT. See `LICENSE`.

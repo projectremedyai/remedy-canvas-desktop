@@ -2,6 +2,7 @@
   "name": "remedy-canvas-desktop",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.27.0",
   "scripts": {

@@ -2,6 +2,7 @@
 name = "remedy-canvas-desktop-sidecar"
 version = "0.1.0"
 description = "Python sidecar for Remedy Canvas Desktop — IMSCC accessibility remediation engine"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.12",

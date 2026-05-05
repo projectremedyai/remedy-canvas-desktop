@@ -2,6 +2,7 @@
 name = "remedy-canvas-desktop"
 version = "0.1.0"
 description = "Remedy Canvas Desktop — offline IMSCC accessibility remediation"
+license = "MIT"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
