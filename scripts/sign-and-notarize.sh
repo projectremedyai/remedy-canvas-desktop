@@ -193,12 +193,30 @@ if [ -f "${DMG_PATH}" ]; then
     rm -f "${DMG_PATH}"
 fi
 
-echo "==> rebuilding DMG via hdiutil"
-hdiutil create \
-    -volname "${APP_NAME}" \
-    -srcfolder "${APP_PATH}" \
-    -ov -format UDZO \
-    "${DMG_PATH}"
+echo "==> rebuilding DMG via create-dmg (with drag-to-Applications layout)"
+# create-dmg gives users the standard Mac install experience: a window with
+# the .app on the left and an Applications folder shortcut on the right.
+# Falls back to hdiutil create if create-dmg isn't on PATH.
+if command -v create-dmg >/dev/null 2>&1; then
+    create-dmg \
+        --volname "${APP_NAME}" \
+        --window-pos 200 120 \
+        --window-size 800 400 \
+        --icon-size 100 \
+        --icon "${APP_NAME}.app" 200 190 \
+        --hide-extension "${APP_NAME}.app" \
+        --app-drop-link 600 185 \
+        --no-internet-enable \
+        "${DMG_PATH}" \
+        "${APP_PATH}"
+else
+    echo "    create-dmg not found — falling back to bare hdiutil"
+    hdiutil create \
+        -volname "${APP_NAME}" \
+        -srcfolder "${APP_PATH}" \
+        -ov -format UDZO \
+        "${DMG_PATH}"
+fi
 
 # The DMG container needs its own Developer ID signature + notarization ticket.
 # Stapling looks up Apple's CloudKit by the file's hash — the .app's existing
