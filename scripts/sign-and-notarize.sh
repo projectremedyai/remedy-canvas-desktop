@@ -75,6 +75,23 @@ codesign_one() {
         "${target}"
 }
 
+# ---------- pass 1: chromium frameworks + helper apps (deepest first) ------
+
+CHROMIUM_DIR="${APP_PATH}/Contents/Resources/vendor/chromium"
+
+if [ -d "${CHROMIUM_DIR}" ]; then
+    echo "==> pass 1: signing nested bundles in ${CHROMIUM_DIR}"
+    # -print0 / sort -rz handles paths with spaces (e.g. "Chromium Helper.app")
+    while IFS= read -r -d '' bundle; do
+        echo "    sign bundle: ${bundle#${APP_PATH}/}"
+        codesign_one "${bundle}"
+    done < <(find "${CHROMIUM_DIR}" \
+                  \( -name "*.framework" -o -name "*.app" \) \
+                  -print0 | sort -rz)
+else
+    echo "==> pass 1: skipped (no vendor/chromium dir)"
+fi
+
 # ---------- codesign -------------------------------------------------------
 
 codesign \
