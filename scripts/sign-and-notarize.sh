@@ -97,33 +97,43 @@ else
 fi
 
 # ---------- pass 2: loose dylibs/so/Mach-O under Resources/vendor ----------
-# The -not -path filters exclude files that are already members of a bundle
-# we signed in Pass 1. Re-signing a child invalidates the parent's signature.
+# Skips files inside nested helper bundles that Pass 1 already signed.
+# The skip check uses the path RELATIVE TO VENDOR_DIR — globbing `-path "*.app/*"`
+# directly on the absolute path would match the outer Remedy Canvas Desktop.app
+# itself and silently exclude every file under vendor/.
 
 VENDOR_DIR="${APP_PATH}/Contents/Resources/vendor"
+
+# Returns 0 if the given absolute path is inside a .framework or .app bundle
+# nested under VENDOR_DIR (i.e. something Pass 1 would have signed).
+inside_nested_bundle() {
+    local rel="${1#${VENDOR_DIR}/}"
+    case "${rel}" in
+        */*.framework/*|*/*.app/*) return 0 ;;
+        *.framework/*|*.app/*)     return 0 ;;
+    esac
+    return 1
+}
 
 if [ -d "${VENDOR_DIR}" ]; then
     echo "==> pass 2: signing dylibs/so under ${VENDOR_DIR}"
     while IFS= read -r -d '' lib; do
+        if inside_nested_bundle "${lib}"; then continue; fi
         echo "    sign lib: ${lib#${APP_PATH}/}"
         codesign_one "${lib}"
     done < <(find "${VENDOR_DIR}" -type f \
                   \( -name "*.dylib" -o -name "*.so" \) \
-                  -not -path "*.framework/*" \
-                  -not -path "*.app/*" \
                   -print0)
 
     echo "==> pass 2: signing Mach-O executables under ${VENDOR_DIR}"
     while IFS= read -r -d '' f; do
+        if inside_nested_bundle "${f}"; then continue; fi
         # `file` reports "Mach-O" for native binaries; skip everything else.
         if file -b "${f}" | grep -q "Mach-O"; then
             echo "    sign exec: ${f#${APP_PATH}/}"
             codesign_one "${f}"
         fi
-    done < <(find "${VENDOR_DIR}" -type f -perm -u+x \
-                  -not -path "*.framework/*" \
-                  -not -path "*.app/*" \
-                  -print0)
+    done < <(find "${VENDOR_DIR}" -type f -perm -u+x -print0)
 else
     echo "==> pass 2: skipped (no vendor dir)"
 fi
