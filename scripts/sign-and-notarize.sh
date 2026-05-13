@@ -59,6 +59,22 @@ echo "==> signing ${APP_PATH}"
 echo "    identity:  ${APPLE_SIGNING_IDENTITY}"
 echo "    team:      ${APPLE_TEAM_ID}"
 
+# ---------- signing helper ------------------------------------------------
+
+# codesign_one <path>
+# Signs a single bundle, dylib, or Mach-O with hardened runtime,
+# entitlements, and an Apple timestamp. Used by every signing pass.
+codesign_one() {
+    local target="$1"
+    codesign \
+        --force \
+        --options runtime \
+        --entitlements "${ENTITLEMENTS}" \
+        --sign "${APPLE_SIGNING_IDENTITY}" \
+        --timestamp \
+        "${target}"
+}
+
 # ---------- codesign -------------------------------------------------------
 
 codesign \
