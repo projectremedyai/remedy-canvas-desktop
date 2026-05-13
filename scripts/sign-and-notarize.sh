@@ -124,6 +124,21 @@ else
     echo "==> pass 2: skipped (no vendor dir)"
 fi
 
+# ---------- pass 3: Tauri externalBin (the Python sidecar) -----------------
+# Tauri places externalBin entries at Contents/MacOS/<basename>, outside the
+# Resources/vendor/ tree that Passes 1 and 2 cover.
+
+SIDECAR_PATH="${APP_PATH}/Contents/MacOS/crd-sidecar"
+
+if [ -f "${SIDECAR_PATH}" ]; then
+    echo "==> pass 3: signing ${SIDECAR_PATH#${APP_PATH}/}"
+    codesign_one "${SIDECAR_PATH}"
+else
+    echo "error: sidecar not found at ${SIDECAR_PATH}" >&2
+    echo "       check Contents/MacOS/ for the actual basename" >&2
+    exit 1
+fi
+
 # ---------- codesign -------------------------------------------------------
 
 codesign \
