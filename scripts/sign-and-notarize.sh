@@ -116,13 +116,17 @@ inside_nested_bundle() {
 }
 
 if [ -d "${VENDOR_DIR}" ]; then
-    echo "==> pass 2: signing dylibs/so under ${VENDOR_DIR}"
+    echo "==> pass 2: signing dylibs/so/node/bundle under ${VENDOR_DIR}"
+    # .node = Node native addons (e.g. sharp-darwin-arm64.node), .bundle = some
+    # native modules. Both are Mach-O dylibs in disguise — notarytool rejects
+    # them as unsigned even though they aren't marked executable.
     while IFS= read -r -d '' lib; do
         if inside_nested_bundle "${lib}"; then continue; fi
         echo "    sign lib: ${lib#${APP_PATH}/}"
         codesign_one "${lib}"
     done < <(find "${VENDOR_DIR}" -type f \
-                  \( -name "*.dylib" -o -name "*.so" \) \
+                  \( -name "*.dylib" -o -name "*.so" \
+                     -o -name "*.node" -o -name "*.bundle" \) \
                   -print0)
 
     echo "==> pass 2: signing Mach-O executables under ${VENDOR_DIR}"
