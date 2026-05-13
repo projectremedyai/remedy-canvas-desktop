@@ -200,6 +200,19 @@ hdiutil create \
     -ov -format UDZO \
     "${DMG_PATH}"
 
+# The DMG container needs its own Developer ID signature + notarization ticket.
+# Stapling looks up Apple's CloudKit by the file's hash — the .app's existing
+# ticket won't satisfy a DMG with a different hash.
+echo "==> signing DMG"
+codesign --force --sign "${APPLE_SIGNING_IDENTITY}" --timestamp "${DMG_PATH}"
+
+echo "==> submitting DMG to notary service (fast — Apple already has the .app hash)"
+xcrun notarytool submit "${DMG_PATH}" \
+    --apple-id "${APPLE_ID}" \
+    --password "${APPLE_PASSWORD}" \
+    --team-id "${APPLE_TEAM_ID}" \
+    --wait
+
 echo "==> stapling DMG"
 xcrun stapler staple "${DMG_PATH}"
 xcrun stapler validate "${DMG_PATH}"
