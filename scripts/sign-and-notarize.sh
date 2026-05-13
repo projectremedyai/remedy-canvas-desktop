@@ -190,6 +190,13 @@ echo "==> stapling DMG"
 xcrun stapler staple "${DMG_PATH}"
 xcrun stapler validate "${DMG_PATH}"
 
+# ---------- final verification ---------------------------------------------
+
+echo "==> verifying notarized + stapled .app"
+codesign --verify --deep --strict --verbose=2 "${APP_PATH}"
+spctl --assess --type execute --verbose "${APP_PATH}"
+echo "    expected: 'source=Notarized Developer ID'"
+
 echo
 echo "==> done"
 echo "    notarized .app: ${APP_PATH}"
