@@ -141,14 +141,8 @@ fi
 
 # ---------- codesign -------------------------------------------------------
 
-codesign \
-    --force \
-    --deep \
-    --options runtime \
-    --entitlements "${ENTITLEMENTS}" \
-    --sign "${APPLE_SIGNING_IDENTITY}" \
-    --timestamp \
-    "${APP_PATH}"
+echo "==> pass 4: signing outer .app"
+codesign_one "${APP_PATH}"
 
 echo "==> verifying signature"
 codesign --verify --deep --strict --verbose=2 "${APP_PATH}"
