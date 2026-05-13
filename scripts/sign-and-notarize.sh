@@ -16,11 +16,15 @@
 #                            (default: src-tauri/target/release/bundle/dmg)
 #
 # This is intentionally ONE script that handles every step:
-#   1. codesign --deep with hardened runtime + entitlements
+#   1. Sign every nested binary inside-out (4 passes — Chromium bundles deepest
+#      first, then loose dylibs/Mach-O under Resources/vendor, then the Python
+#      sidecar at Contents/MacOS, then the outer .app) with hardened runtime +
+#      entitlements. Per-binary signing avoids the deprecated --deep flag.
 #   2. Zip for notarytool submission (notarytool wants .zip/.dmg, not .app)
 #   3. xcrun notarytool submit --wait (blocks until Apple approves, ~2-10 min)
 #   4. xcrun stapler staple the .app (so Gatekeeper doesn't re-verify online)
 #   5. Rebuild the .dmg (hdiutil, same as Phase 7a workaround) and staple it
+#   6. Final verification: codesign --verify + spctl --assess
 #
 # Produces: a notarized + stapled .app and .dmg. Ready for distribution.
 
