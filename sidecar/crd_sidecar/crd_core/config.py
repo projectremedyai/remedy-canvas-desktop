@@ -51,6 +51,16 @@ class Settings:
     ollama_text_model: str = "gemma4:e4b"
     ollama_vision_model: str = "gemma4:e4b"
 
+    # --- Provider abstraction (SP-2) ---
+    # Which backend gets the LLM requests. All three are OpenAI-compatible.
+    # When LOCAL_OLLAMA (default), the existing ollama_* fields drive everything.
+    # When OLLAMA_CLOUD or OPENROUTER, provider_api_key + provider_*_model take over
+    # and the Rust shell skips spawning the bundled local Ollama.
+    provider: Provider = Provider.LOCAL_OLLAMA
+    provider_api_key: str = ""  # ignored when provider == LOCAL_OLLAMA
+    provider_text_model: str = ""  # empty → use the per-provider default
+    provider_vision_model: str = ""  # empty → use the per-provider default
+
     # KV cache context length passed to Ollama via `options.num_ctx` on every
     # chat completion. The Rust shell detects installed RAM and sets this
     # at sidecar spawn time: 8k (≤8 GB), 32k (9–16 GB), 64k (17–32 GB),
@@ -103,6 +113,14 @@ def get_settings() -> Settings:
         ),
         ollama_vision_model=os.environ.get(
             "CRD_OLLAMA_VISION_MODEL", Settings.ollama_vision_model
+        ),
+        provider=Provider.from_env(os.environ.get("CRD_PROVIDER")),
+        provider_api_key=os.environ.get("CRD_PROVIDER_API_KEY", Settings.provider_api_key),
+        provider_text_model=os.environ.get(
+            "CRD_PROVIDER_TEXT_MODEL", Settings.provider_text_model
+        ),
+        provider_vision_model=os.environ.get(
+            "CRD_PROVIDER_VISION_MODEL", Settings.provider_vision_model
         ),
         ai_max_concurrency=_env_int(
             "CRD_AI_MAX_CONCURRENCY", Settings.ai_max_concurrency
