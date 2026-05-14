@@ -134,6 +134,148 @@ fn context_tier() -> ContextTier {
     tier
 }
 
+// --- Provider configuration (SP-3) ----------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderConfig {
+    pub provider: String,
+    pub text_model: String,
+    pub vision_model: String,
+    pub has_api_key: bool,
+}
+
+const PROVIDER_PREF_FILE: &str = "provider.json";
+
+fn provider_pref_path(app: &tauri::AppHandle) -> std::path::PathBuf {
+    app.path()
+        .app_config_dir()
+        .expect("app_config_dir resolves on macOS")
+        .join(PROVIDER_PREF_FILE)
+}
+
+fn read_provider_pref(app: &tauri::AppHandle) -> ProviderConfig {
+    let path = provider_pref_path(app);
+    if let Ok(raw) = std::fs::read_to_string(&path) {
+        if let Ok(parsed) = serde_json::from_str::<ProviderConfig>(&raw) {
+            return parsed;
+        }
+    }
+    ProviderConfig {
+        provider: "local-ollama".into(),
+        text_model: "".into(),
+        vision_model: "".into(),
+        has_api_key: false,
+    }
+}
+
+fn write_provider_pref(app: &tauri::AppHandle, cfg: &ProviderConfig) -> Result<(), String> {
+    let path = provider_pref_path(app);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("create config dir: {e}"))?;
+    }
+    let json = serde_json::to_string_pretty(cfg).map_err(|e| format!("serialize: {e}"))?;
+    std::fs::write(&path, json).map_err(|e| format!("write {}: {e}", path.display()))
+}
+
+#[tauri::command]
+async fn get_provider_config(app: tauri::AppHandle) -> Result<ProviderConfig, String> {
+    let mut cfg = read_provider_pref(&app);
+    // `has_api_key` is derived from Keychain at read time — file storage only
+    // records the provider/model choice, never the key itself.
+    if cfg.provider != "local-ollama" {
+        cfg.has_api_key = keychain::load_api_key(&cfg.provider)
+            .map(|opt| opt.is_some())
+            .unwrap_or(false);
+    } else {
+        cfg.has_api_key = false;
+    }
+    Ok(cfg)
+}
+
+#[tauri::command]
+async fn set_provider_config(
+    app: tauri::AppHandle,
+    provider: String,
+    api_key: Option<String>,
+    text_model: String,
+    vision_model: String,
+) -> Result<ProviderConfig, String> {
+    if !["local-ollama", "ollama-cloud", "openrouter"].contains(&provider.as_str()) {
+        return Err(format!("unknown provider: {provider}"));
+    }
+
+    if let Some(key) = api_key.as_deref() {
+        if !key.is_empty() && provider != "local-ollama" {
+            keychain::store_api_key(&provider, key)?;
+        }
+    }
+
+    let cfg = ProviderConfig {
+        provider: provider.clone(),
+        text_model,
+        vision_model,
+        has_api_key: provider != "local-ollama"
+            && keychain::load_api_key(&provider)
+                .map(|o| o.is_some())
+                .unwrap_or(false),
+    };
+    write_provider_pref(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
+async fn clear_provider_key(provider: String) -> Result<(), String> {
+    if provider == "local-ollama" {
+        return Ok(());
+    }
+    keychain::delete_api_key(&provider)
+}
+
+#[tauri::command]
+async fn test_provider_connection(
+    provider: String,
+    api_key: Option<String>,
+    text_model: String,
+) -> Result<String, String> {
+    let (base_url, auth) = match provider.as_str() {
+        "local-ollama" => ("http://127.0.0.1:11434".to_string(), None),
+        "ollama-cloud" => ("https://ollama.com".to_string(), api_key.clone()),
+        "openrouter" => ("https://openrouter.ai".to_string(), api_key.clone()),
+        other => return Err(format!("unknown provider: {other}")),
+    };
+
+    let url = if provider == "ollama-cloud" {
+        format!("{base_url}/api/tags")
+    } else if provider == "openrouter" {
+        format!("{base_url}/api/v1/models")
+    } else {
+        format!("{base_url}/v1/models")
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("reqwest builder: {e}"))?;
+    let mut req = client.get(&url);
+    if let Some(key) = auth {
+        if !key.is_empty() {
+            req = req.header("Authorization", format!("Bearer {key}"));
+        }
+    }
+    let resp = req.send().await.map_err(|e| format!("request failed: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!(
+            "HTTP {}: {}",
+            resp.status(),
+            resp.status().canonical_reason().unwrap_or("?")
+        ));
+    }
+
+    Ok(format!(
+        "Connected to {provider} (model: {text_model}). 200 OK from {url}"
+    ))
+}
+
 #[derive(Debug, Serialize)]
 pub struct SidecarPingResult {
     pub ok: bool,
@@ -632,6 +774,10 @@ pub fn run() {
             context_tier,
             ollama::bundled_ollama_status,
             ollama::pull_default_model,
+            get_provider_config,
+            set_provider_config,
+            clear_provider_key,
+            test_provider_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
