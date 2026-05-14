@@ -152,6 +152,28 @@ hdiutil create \
   progress streamed from `/api/pull` over the `ollama.model.pull.progress`
   event. Model weights persist under
   `~/Library/Application Support/com.canvasremedy.desktop/ollama-models/`.
+- **Provider selection (SP-2)** — the sidecar can route requests to one of
+  three OpenAI-compatible backends. Controlled via environment variables;
+  SP-3 will add a settings UI. Examples:
+
+  ```bash
+  # Default — bundled local Ollama (gemma4 picked by RAM).
+  pnpm tauri dev
+
+  # Ollama Cloud — bring your own ollama.com API key.
+  CRD_PROVIDER=ollama-cloud \
+  CRD_PROVIDER_API_KEY=ollama_v1_... \
+  pnpm tauri dev
+
+  # OpenRouter — bring your own openrouter.ai API key.
+  CRD_PROVIDER=openrouter \
+  CRD_PROVIDER_API_KEY=sk-or-... \
+  CRD_PROVIDER_TEXT_MODEL=anthropic/claude-opus-4-7 \
+  pnpm tauri dev
+  ```
+
+  When a cloud provider is selected, the bundled local Ollama is **not**
+  spawned, saving ~9 GB of model download and ~2 GB of RAM at runtime.
 - **LiteParse** — installed via `npm install @llamaindex/liteparse` into
   `vendor/liteparse/node_modules/`, with a portable Node 20 runtime and a
   `liteparse` shell shim alongside. The Rust shell prepends `vendor/liteparse/`
