@@ -140,6 +140,18 @@ async fn wait_for_ready(base_url: &str, budget: Duration) -> Result<(), String> 
 /// Launch the bundled Ollama on a free localhost port. In dev, skip the spawn
 /// and return a handle pointing at the user's system Ollama on :11434.
 pub async fn start_bundled_ollama(app: &AppHandle) -> Result<OllamaHandle, String> {
+    // SP-2: if the user has selected a cloud provider, the bundled local
+    // Ollama is unnecessary — return an "external" handle pointing nowhere
+    // and let the sidecar talk to the cloud directly.
+    let provider = std::env::var("CRD_PROVIDER").unwrap_or_default();
+    let provider_norm = provider.trim().to_lowercase();
+    if provider_norm == "ollama-cloud" || provider_norm == "openrouter" {
+        return Ok(OllamaHandle::external(
+            // base URL is a no-op for the Rust side — the sidecar reads its own
+            // CRD_PROVIDER_API_KEY and routes directly. We use a sentinel here.
+            "cloud-provider".into(),
+        ));
+    }
     if cfg!(debug_assertions) {
         let base = std::env::var("CRD_OLLAMA_BASE_URL")
             .ok()
@@ -428,6 +440,13 @@ pub async fn pull_default_model(
 /// Return the base URL the Python sidecar should use when spawned.
 /// Always appends `/v1` because the OpenAI-compat endpoint lives there.
 pub fn sidecar_base_url(state: &OllamaState) -> Option<String> {
+    let provider = std::env::var("CRD_PROVIDER").unwrap_or_default();
+    let provider_norm = provider.trim().to_lowercase();
+    if provider_norm == "ollama-cloud" || provider_norm == "openrouter" {
+        // Cloud mode — the sidecar resolves its own base URL from CRD_PROVIDER_*.
+        // Don't override.
+        return None;
+    }
     let guard = state.0.lock().ok()?;
     guard
         .as_ref()
