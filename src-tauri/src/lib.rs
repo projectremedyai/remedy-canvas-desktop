@@ -61,6 +61,11 @@ fn spawn_sidecar_command(
         cmd = cmd.env("CRD_OLLAMA_BASE_URL", base);
     }
 
+    // Tell the sidecar which Ollama model to use — picked from RAM at startup.
+    let model = ollama::default_local_model();
+    cmd = cmd.env("CRD_OLLAMA_TEXT_MODEL", model);
+    cmd = cmd.env("CRD_OLLAMA_VISION_MODEL", model);
+
     // Prepend the bundled liteparse directory so `shutil.which("liteparse")`
     // in the Python wrapper finds our shim first (release-only).
     if let Some(lp_dir) = ollama::bundled_liteparse_dir(app) {
