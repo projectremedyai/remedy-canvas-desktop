@@ -19,7 +19,7 @@ builds remain unsigned and do not yet bundle Ollama/LiteParse.
 ```
 Tauri/Rust shell (WebView UI) ── IPC ── Python sidecar (crd_sidecar engine)
                                             │
-                                            ├── bundled Ollama (gemma4:e4b, downloaded on first launch)
+                                            ├── bundled Ollama (gemma4:e4b on 16+ GB Macs, gemma4:e2b on 8 GB; downloaded on first launch)
                                             └── bundled LiteParse (PDF/DOCX/PPTX → HTML)
 ```
 
@@ -146,7 +146,8 @@ hdiutil create \
 
 - **Ollama** — downloaded from `https://ollama.com/download/Ollama-darwin.zip`
   into `vendor/ollama/`. The app launches its own `ollama serve` on a free
-  local port at startup. The default model (`gemma4:e4b`, ~9.6 GB) is *not*
+  local port at startup. The default model is picked from installed RAM —
+  `gemma4:e2b` (~7.2 GB) on 8 GB Macs, `gemma4:e4b` (~9.6 GB) on 16+ GB. It is *not*
   bundled — the UI prompts the user to download it on first launch, with
   progress streamed from `/api/pull` over the `ollama.model.pull.progress`
   event. Model weights persist under
