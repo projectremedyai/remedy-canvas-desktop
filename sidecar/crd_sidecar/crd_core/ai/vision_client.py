@@ -54,17 +54,18 @@ class OllamaVisionClient:
     def __init__(self) -> None:
         settings = get_settings()
         self._client = AsyncOpenAI(
-            base_url=settings.ollama_base_url.rstrip("/"),
-            api_key=settings.ollama_api_key or "ollama",
+            base_url=settings.resolved_base_url(),
+            api_key=settings.resolved_api_key() or "placeholder",
             max_retries=0,  # we handle retries ourselves
             timeout=90.0,
         )
+        self._extra_headers = settings.extra_headers()
 
     def get_primary_model(self) -> str:
-        return get_settings().ollama_vision_model
+        return get_settings().resolved_vision_model()
 
     def get_fallback_model(self) -> str:
-        return get_settings().ollama_text_model
+        return get_settings().resolved_text_model()
 
     @staticmethod
     def _extract_tool_calls(completion: object) -> list[dict]:
@@ -138,6 +139,10 @@ class OllamaVisionClient:
             kwargs["tools"] = tools
         if tool_choice:
             kwargs["tool_choice"] = tool_choice
+
+        # Pass provider-specific headers (e.g. HTTP-Referer, X-Title for
+        # OpenRouter). For LOCAL_OLLAMA the dict is empty and the SDK no-ops.
+        kwargs["extra_headers"] = self._extra_headers
 
         for attempt in range(4):  # 1 initial + 3 retries
             async with ai_run_slot(run_id):
