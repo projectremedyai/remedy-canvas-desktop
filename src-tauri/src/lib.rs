@@ -67,18 +67,39 @@ fn spawn_sidecar_command(
     cmd = cmd.env("CRD_OLLAMA_TEXT_MODEL", model);
     cmd = cmd.env("CRD_OLLAMA_VISION_MODEL", model);
 
-    // SP-2: Forward provider configuration to the Python sidecar. The keys
-    // come from the Rust process environment for now; SP-3 will load the API
-    // key from macOS Keychain and inject it here instead.
-    for key in [
-        "CRD_PROVIDER",
-        "CRD_PROVIDER_API_KEY",
-        "CRD_PROVIDER_TEXT_MODEL",
-        "CRD_PROVIDER_VISION_MODEL",
-    ] {
-        if let Ok(value) = std::env::var(key) {
-            cmd = cmd.env(key, value);
+    // SP-3: Resolve provider configuration. Order of precedence:
+    //   1. Saved settings (read_provider_pref) — what the user picked in the UI
+    //   2. Environment variables — for dev/test overrides
+    // API keys ALWAYS come from Keychain when the provider is cloud; they are
+    // never read from the Rust process env (so a `printenv` doesn't leak the key)
+    // except as a developer override.
+    let saved = read_provider_pref(app);
+    let provider = std::env::var("CRD_PROVIDER").unwrap_or(saved.provider.clone());
+    cmd = cmd.env("CRD_PROVIDER", &provider);
+
+    if let Ok(model) = std::env::var("CRD_PROVIDER_TEXT_MODEL") {
+        cmd = cmd.env("CRD_PROVIDER_TEXT_MODEL", model);
+    } else if !saved.text_model.is_empty() {
+        cmd = cmd.env("CRD_PROVIDER_TEXT_MODEL", &saved.text_model);
+    }
+
+    if let Ok(model) = std::env::var("CRD_PROVIDER_VISION_MODEL") {
+        cmd = cmd.env("CRD_PROVIDER_VISION_MODEL", model);
+    } else if !saved.vision_model.is_empty() {
+        cmd = cmd.env("CRD_PROVIDER_VISION_MODEL", &saved.vision_model);
+    }
+
+    if provider != "local-ollama" {
+        // For cloud providers, the API key MUST come from Keychain.
+        // The env-var path is allowed for dev only.
+        let key_from_keychain = keychain::load_api_key(&provider).ok().flatten();
+        let key_from_env = std::env::var("CRD_PROVIDER_API_KEY").ok();
+        if let Some(key) = key_from_keychain.or(key_from_env) {
+            cmd = cmd.env("CRD_PROVIDER_API_KEY", key);
         }
+        // If no key is available, the sidecar will get an empty key and the
+        // first cloud request will return 401 — surfacing the missing-key
+        // state to the UI clearly. We do NOT silently fall back to local-ollama.
     }
 
     // Prepend the bundled liteparse directory so `shutil.which("liteparse")`
