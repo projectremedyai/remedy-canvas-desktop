@@ -1,6 +1,6 @@
 [package]
 name = "remedy-canvas-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Remedy Canvas Desktop — offline IMSCC accessibility remediation"
 license = "MIT"
 edition = "2021"

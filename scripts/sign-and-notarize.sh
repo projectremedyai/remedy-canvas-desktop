@@ -37,7 +37,7 @@ ENTITLEMENTS="${ROOT}/src-tauri/entitlements.plist"
 
 # Default DMG output mirrors Phase 7a's layout.
 DMG_OUTPUT_DIR="${DMG_OUTPUT_DIR:-${ROOT}/src-tauri/target/release/bundle/dmg}"
-DMG_PATH="${DMG_OUTPUT_DIR}/${APP_NAME}_0.1.0_aarch64.dmg"
+DMG_PATH="${DMG_OUTPUT_DIR}/${APP_NAME}_0.1.1_aarch64.dmg"
 
 # ---------- preflight ------------------------------------------------------
 
