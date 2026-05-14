@@ -861,3 +861,69 @@ button {
   opacity: 0.55;
   font-size: 11px;
 }
+
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.settings-modal__body {
+  background: var(--app-bg, white);
+  color: var(--app-fg, black);
+  border-radius: 8px;
+  padding: 1.5rem;
+  max-width: 560px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+.settings-modal__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+.settings-panel fieldset {
+  border: 1px solid #ddd;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+}
+.settings-panel .provider-option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0.5rem 0;
+  cursor: pointer;
+}
+.settings-panel .provider-description {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+.settings-panel .api-key-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.settings-panel .api-key-row input {
+  flex: 1;
+  font-family: monospace;
+}
+.settings-panel .settings-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.settings-panel .test-result {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+}
+.settings-panel .test-result--ok { color: #1b8a3a; }
+.settings-panel .test-result--err { color: #c0392b; }

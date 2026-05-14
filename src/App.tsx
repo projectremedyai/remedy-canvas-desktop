@@ -11,6 +11,7 @@ import { ResultsPanel } from "./components/ResultsPanel";
 import { OllamaBadge } from "./components/OllamaBadge";
 import { SuggestionReview } from "./components/SuggestionReview";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { AIBackendSettings } from "./components/AIBackendSettings";
 import {
   BundledOllamaStatus,
   DEFAULT_OPTIONS,
@@ -60,6 +61,8 @@ function App() {
     null,
   );
   const [pullError, setPullError] = useState<string | null>(null);
+
+  const [showSettings, setShowSettings] = useState(false);
 
   const jobIdRef = useRef<string>("");
   const startRef = useRef<number>(0);
@@ -248,6 +251,7 @@ function App() {
       : null;
 
   return (
+    <>
     <main className="app">
       <header className="app__header">
         <div className="app__brand">Remedy Canvas Desktop</div>
@@ -262,6 +266,13 @@ function App() {
             onRefresh={() => void refreshOllama()}
           />
           <ThemeToggle />
+          <button
+            type="button"
+            className="app-header__settings-button"
+            onClick={() => setShowSettings((v) => !v)}
+          >
+            ⚙ Settings
+          </button>
         </div>
       </header>
 
@@ -390,6 +401,26 @@ function App() {
         )}
       </section>
     </main>
+    {showSettings && (
+      <div
+        className="settings-modal"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setShowSettings(false);
+        }}
+      >
+        <div className="settings-modal__body">
+          <button
+            type="button"
+            className="settings-modal__close"
+            onClick={() => setShowSettings(false)}
+          >
+            ✕
+          </button>
+          <AIBackendSettings />
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
