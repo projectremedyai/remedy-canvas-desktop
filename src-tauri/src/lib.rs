@@ -66,6 +66,20 @@ fn spawn_sidecar_command(
     cmd = cmd.env("CRD_OLLAMA_TEXT_MODEL", model);
     cmd = cmd.env("CRD_OLLAMA_VISION_MODEL", model);
 
+    // SP-2: Forward provider configuration to the Python sidecar. The keys
+    // come from the Rust process environment for now; SP-3 will load the API
+    // key from macOS Keychain and inject it here instead.
+    for key in [
+        "CRD_PROVIDER",
+        "CRD_PROVIDER_API_KEY",
+        "CRD_PROVIDER_TEXT_MODEL",
+        "CRD_PROVIDER_VISION_MODEL",
+    ] {
+        if let Ok(value) = std::env::var(key) {
+            cmd = cmd.env(key, value);
+        }
+    }
+
     // Prepend the bundled liteparse directory so `shutil.which("liteparse")`
     // in the Python wrapper finds our shim first (release-only).
     if let Some(lp_dir) = ollama::bundled_liteparse_dir(app) {
