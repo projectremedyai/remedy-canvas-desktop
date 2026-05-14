@@ -28,3 +28,8 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 tokio = { version = "1", features = ["rt", "macros", "io-util", "process", "time", "sync"] }
 futures-util = "0.3"
 sysinfo = { version = "0.32", default-features = false, features = ["system"] }
+
+# macOS Keychain for storing BYOK API keys outside any plaintext config file.
+# Pinned to a stable major to keep notarization builds reproducible.
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
