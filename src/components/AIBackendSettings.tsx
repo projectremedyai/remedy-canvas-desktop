@@ -68,6 +68,12 @@ export function AIBackendSettings() {
       });
       setCfg(saved);
       setApiKey(""); // clear in-memory field after save
+      try {
+        await invoke<void>("restart_sidecar");
+      } catch (e) {
+        // Non-fatal — settings are saved; the user can restart the app instead.
+        console.warn("sidecar restart failed:", e);
+      }
     } catch (e) {
       setSaveError(String(e));
     } finally {

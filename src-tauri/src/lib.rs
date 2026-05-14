@@ -297,6 +297,21 @@ async fn test_provider_connection(
     ))
 }
 
+#[tauri::command]
+async fn restart_sidecar(app: tauri::AppHandle) -> Result<(), String> {
+    // Best-effort kill: find any process named crd-sidecar spawned by this app
+    // and signal it. Tauri 2 reaps the child automatically; the spawn block
+    // re-runs on the next IPC call that needs the sidecar.
+    let _ = app; // currently unused, but keep the param for future child-handle access
+    let output = std::process::Command::new("pkill")
+        .args(["-f", "crd-sidecar"])
+        .output();
+    match output {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("pkill failed: {e}")),
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct SidecarPingResult {
     pub ok: bool,
@@ -799,6 +814,7 @@ pub fn run() {
             set_provider_config,
             clear_provider_key,
             test_provider_connection,
+            restart_sidecar,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
