@@ -72,7 +72,19 @@ pub struct BundledOllamaStatus {
     pub error: Option<String>,
 }
 
-pub const DEFAULT_MODEL: &str = "gemma4:e4b";
+/// The Ollama tag for the bundled-Ollama default model, picked at runtime
+/// from installed RAM. 8 GB systems get `gemma4:e2b`; 16+ GB get `gemma4:e4b`.
+pub fn default_local_model() -> &'static str {
+    crate::sysmem::ModelSize::for_ram(crate::sysmem::detect_total_memory_gb())
+        .ollama_tag()
+}
+
+/// Human-readable approximate download size of `default_local_model()`,
+/// used in UI copy ("Download AI model (gemma4:e2b, ~7.2 GB)").
+pub fn default_local_model_size() -> &'static str {
+    crate::sysmem::ModelSize::for_ram(crate::sysmem::detect_total_memory_gb())
+        .approx_download_gb()
+}
 
 /// Finds the bundled Ollama executable. Returns `None` in dev builds or when
 /// the resource isn't present (e.g. the user ran `cargo run` without a
@@ -259,7 +271,7 @@ pub async fn bundled_ollama_status(
             bundled: false,
             port: None,
             base_url: None,
-            default_model: DEFAULT_MODEL.into(),
+            default_model: default_local_model().to_string(),
             default_model_present: false,
             installed_models: vec![],
             error: Some("ollama not initialized".into()),
@@ -268,13 +280,13 @@ pub async fn bundled_ollama_status(
 
     match fetch_tags(&base).await {
         Ok(models) => {
-            let present = model_present(&models, DEFAULT_MODEL);
+            let present = model_present(&models, default_local_model());
             Ok(BundledOllamaStatus {
                 running: true,
                 bundled,
                 port,
                 base_url: Some(base),
-                default_model: DEFAULT_MODEL.into(),
+                default_model: default_local_model().to_string(),
                 default_model_present: present,
                 installed_models: models,
                 error: None,
@@ -285,7 +297,7 @@ pub async fn bundled_ollama_status(
             bundled,
             port,
             base_url: Some(base),
-            default_model: DEFAULT_MODEL.into(),
+            default_model: default_local_model().to_string(),
             default_model_present: false,
             installed_models: vec![],
             error: Some(e),
@@ -320,7 +332,7 @@ pub async fn pull_default_model(
             .map(|h| h.base_url.clone())
             .ok_or_else(|| "ollama not initialized".to_string())?
     };
-    let model_name = model.unwrap_or_else(|| DEFAULT_MODEL.to_string());
+    let model_name = model.unwrap_or_else(|| default_local_model().to_string());
 
     let url = format!("{}/api/pull", base.trim_end_matches('/'));
     let client = reqwest::Client::builder()
