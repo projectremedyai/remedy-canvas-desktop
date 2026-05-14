@@ -1,3 +1,4 @@
+mod keychain;
 mod ollama;
 mod sysmem;
 
