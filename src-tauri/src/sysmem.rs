@@ -73,17 +73,18 @@ pub struct ContextTier {
 /// Returns the tier to use + whether it came from the env (so the UI can
 /// disclose "32k (auto-detected)" vs "16k (user override)").
 pub fn resolve_context_tier() -> (ContextTier, bool) {
+    let total = detect_total_memory_gb();
     if let Ok(raw) = std::env::var("CRD_OLLAMA_NUM_CTX") {
         if let Ok(num_ctx) = raw.trim().parse::<u32>() {
             let override_tier = ContextTier {
-                total_memory_gb: detect_total_memory_gb(),
+                total_memory_gb: total,
                 num_ctx,
                 label: "user override",
             };
             return (override_tier, true);
         }
     }
-    (pick_tier(detect_total_memory_gb()), false)
+    (pick_tier(total, ModelSize::for_ram(total)), false)
 }
 
 pub fn detect_total_memory_gb() -> u64 {
@@ -95,13 +96,20 @@ pub fn detect_total_memory_gb() -> u64 {
     (bytes + 512 * 1024 * 1024) / (1024 * 1024 * 1024)
 }
 
-/// Memory-tier → context size. Edit with care; each step up roughly doubles
-/// the KV-cache footprint.
-fn pick_tier(total_gb: u64) -> ContextTier {
-    let (num_ctx, label) = match total_gb {
-        0..=8 => (8_192, "tight — 8k context"),
-        9..=16 => (32_768, "comfortable — 32k context"),
-        17..=32 => (65_536, "generous — 64k context"),
+/// Memory-tier → context size, aware of which gemma4 variant is loaded.
+///
+/// We aim to keep (model weights + KV cache) under half of installed RAM so
+/// the OS, Chromium, and the Python sidecar still have room to breathe. Each
+/// step up roughly doubles the KV-cache footprint (~1 GB per 32k tokens at Q8).
+fn pick_tier(total_gb: u64, size: ModelSize) -> ContextTier {
+    // Available budget after subtracting model weights, capped at half of RAM.
+    let weights = size.weights_gb();
+    let budget_gb = (total_gb / 2).saturating_sub(weights);
+
+    let (num_ctx, label) = match budget_gb {
+        0..=1 => (8_192, "tight — 8k context"),
+        2..=3 => (32_768, "comfortable — 32k context"),
+        4..=6 => (65_536, "generous — 64k context"),
         _ => (131_072, "spacious — 128k context (model max)"),
     };
     ContextTier {
@@ -117,27 +125,34 @@ mod tests {
 
     #[test]
     fn low_mem_pins_to_8k() {
-        assert_eq!(pick_tier(4).num_ctx, 8_192);
-        assert_eq!(pick_tier(8).num_ctx, 8_192);
+        // 4 GB total, Small model (8 GB weights) → budget is 0, tight tier.
+        assert_eq!(pick_tier(4, ModelSize::Small).num_ctx, 8_192);
+        // 8 GB total, Small → half RAM (4) - 8 weights = 0 budget, tight tier.
+        assert_eq!(pick_tier(8, ModelSize::Small).num_ctx, 8_192);
     }
 
     #[test]
     fn macbook_air_tier() {
-        // 16 GB is the common target instructor laptop.
-        assert_eq!(pick_tier(16).num_ctx, 32_768);
+        // 16 GB with the large model: half (8) - 10 weights = 0 budget, tight tier.
+        // This is the realistic "instructor laptop running e4b" case.
+        assert_eq!(pick_tier(16, ModelSize::Large).num_ctx, 8_192);
+        // 16 GB with the small model: half (8) - 8 weights = 0 budget, also tight.
+        assert_eq!(pick_tier(16, ModelSize::Small).num_ctx, 8_192);
     }
 
     #[test]
     fn workstation_tier() {
-        assert_eq!(pick_tier(32).num_ctx, 65_536);
-        assert_eq!(pick_tier(64).num_ctx, 131_072);
+        // 32 GB with Large: half (16) - 10 weights = 6 budget → generous (64k).
+        assert_eq!(pick_tier(32, ModelSize::Large).num_ctx, 65_536);
+        // 64 GB with Large: half (32) - 10 weights = 22 budget → spacious (128k).
+        assert_eq!(pick_tier(64, ModelSize::Large).num_ctx, 131_072);
     }
 
     #[test]
     fn max_is_model_ceiling() {
         // gemma4:e4b maxes at 128k regardless of available RAM.
-        assert_eq!(pick_tier(128).num_ctx, 131_072);
-        assert_eq!(pick_tier(512).num_ctx, 131_072);
+        assert_eq!(pick_tier(128, ModelSize::Large).num_ctx, 131_072);
+        assert_eq!(pick_tier(512, ModelSize::Large).num_ctx, 131_072);
     }
 
     #[test]
