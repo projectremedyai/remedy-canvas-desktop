@@ -13,8 +13,27 @@ at its bundled Ollama without recompiling Python.
 from __future__ import annotations
 
 import os
+from enum import Enum
 from dataclasses import dataclass
 from functools import lru_cache
+
+
+class Provider(str, Enum):
+    """Where LLM requests go. All three backends are OpenAI-compatible."""
+
+    LOCAL_OLLAMA = "local-ollama"
+    OLLAMA_CLOUD = "ollama-cloud"
+    OPENROUTER = "openrouter"
+
+    @classmethod
+    def from_env(cls, raw: str | None) -> "Provider":
+        """Parse a CRD_PROVIDER env value. Unknown → LOCAL_OLLAMA (safe fallback)."""
+        if raw is None or not raw.strip():
+            return cls.LOCAL_OLLAMA
+        try:
+            return cls(raw.strip().lower())
+        except ValueError:
+            return cls.LOCAL_OLLAMA
 
 
 @dataclass(frozen=True)
