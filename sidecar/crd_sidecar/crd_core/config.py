@@ -78,6 +78,63 @@ class Settings:
     ai_max_retries: int = 3
     ai_base_retry_delay: float = 1.0
 
+    # ---- resolution helpers ----
+
+    def resolved_base_url(self) -> str:
+        """Base URL of the OpenAI-compatible endpoint to call."""
+        if self.provider == Provider.LOCAL_OLLAMA:
+            return self.ollama_base_url
+        if self.provider == Provider.OLLAMA_CLOUD:
+            return "https://ollama.com/api"
+        if self.provider == Provider.OPENROUTER:
+            return "https://openrouter.ai/api/v1"
+        return self.ollama_base_url  # unreachable; defensive default
+
+    def resolved_api_key(self) -> str:
+        """Bearer-token value for the Authorization header.
+
+        Local Ollama ignores auth but openai-python requires a non-empty
+        api_key argument, so we return the placeholder there too.
+        """
+        if self.provider == Provider.LOCAL_OLLAMA:
+            return self.ollama_api_key or "ollama"
+        return self.provider_api_key or ""
+
+    def resolved_text_model(self) -> str:
+        """Model tag for text/chat completions."""
+        if self.provider == Provider.LOCAL_OLLAMA:
+            return self.ollama_text_model
+        return self.provider_text_model or self._default_provider_text_model()
+
+    def resolved_vision_model(self) -> str:
+        """Model tag for image-input completions (alt-text generation)."""
+        if self.provider == Provider.LOCAL_OLLAMA:
+            return self.ollama_vision_model
+        return self.provider_vision_model or self._default_provider_vision_model()
+
+    def extra_headers(self) -> dict[str, str]:
+        """Extra HTTP headers to attach to every request, e.g. OpenRouter attribution."""
+        if self.provider == Provider.OPENROUTER:
+            return {
+                "HTTP-Referer": "https://github.com/projectremedyai/remedy-canvas-desktop",
+                "X-Title": "Remedy Canvas Desktop",
+            }
+        return {}
+
+    # ---- per-provider default fallbacks ----
+
+    def _default_provider_text_model(self) -> str:
+        if self.provider == Provider.OLLAMA_CLOUD:
+            return "gpt-oss:120b"
+        if self.provider == Provider.OPENROUTER:
+            return "openai/gpt-4o"
+        return ""
+
+    def _default_provider_vision_model(self) -> str:
+        # Default vision = default text for both cloud providers (both have
+        # multimodal flagship offerings at these tags).
+        return self._default_provider_text_model()
+
 
 def _env_int(name: str, default: int) -> int:
     raw = os.environ.get(name)
