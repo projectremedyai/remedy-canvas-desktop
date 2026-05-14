@@ -86,6 +86,7 @@ export type BundledOllamaStatus = {
   port: number | null;
   base_url: string | null;
   default_model: string;
+  default_model_size: string;
   default_model_present: boolean;
   installed_models: string[];
   error: string | null;

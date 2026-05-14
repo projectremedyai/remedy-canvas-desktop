@@ -83,6 +83,7 @@ function App() {
               port: null,
               base_url: null,
               default_model: "gemma4:e4b",
+              default_model_size: "9.6 GB",
               default_model_present: false,
               installed_models: [],
               error: "unavailable",
@@ -282,7 +283,7 @@ function App() {
             {showModelPull && (
               <div className="banner banner--info" role="status">
                 <div className="banner__title">
-                  Download AI model ({bundledOllama?.default_model ?? "gemma4:e4b"}, ~9.6 GB)
+                  Download AI model ({bundledOllama?.default_model ?? "gemma4:e4b"}, ~{bundledOllama?.default_model_size ?? "9.6 GB"})
                 </div>
                 <p className="banner__body">
                   Needed for alt-text generation and document conversion. You
