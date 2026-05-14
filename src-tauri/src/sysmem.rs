@@ -13,6 +13,53 @@
 use serde::Serialize;
 use sysinfo::System;
 
+/// Approximate disk-and-RAM footprint of the bundled gemma4 model variants
+/// at Q4_K_M quantization. Used by `pick_tier` to size the KV cache so
+/// (weights + KV cache) stays under half of installed RAM.
+#[derive(Debug, Clone, Copy)]
+pub enum ModelSize {
+    /// gemma4:e2b — ~7.2 GB weights
+    Small,
+    /// gemma4:e4b — ~9.6 GB weights
+    Large,
+}
+
+impl ModelSize {
+    /// Pick the largest variant that comfortably fits in the given RAM.
+    /// 8 GB → Small (e2b). 16+ GB → Large (e4b).
+    pub fn for_ram(total_gb: u64) -> Self {
+        if total_gb <= 8 {
+            ModelSize::Small
+        } else {
+            ModelSize::Large
+        }
+    }
+
+    /// Approximate weight footprint in GB. Used by tier sizing.
+    fn weights_gb(self) -> u64 {
+        match self {
+            ModelSize::Small => 8,  // 7.2 GB rounded up to 8 for safety
+            ModelSize::Large => 10, // 9.6 GB rounded up to 10 for safety
+        }
+    }
+
+    /// The Ollama tag string this size corresponds to.
+    pub fn ollama_tag(self) -> &'static str {
+        match self {
+            ModelSize::Small => "gemma4:e2b",
+            ModelSize::Large => "gemma4:e4b",
+        }
+    }
+
+    /// Human-readable download size, used in the UI's "Download AI model (X, ~Y GB)" copy.
+    pub fn approx_download_gb(self) -> &'static str {
+        match self {
+            ModelSize::Small => "7.2 GB",
+            ModelSize::Large => "9.6 GB",
+        }
+    }
+}
+
 /// Context-length tier derived from installed system memory.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct ContextTier {
@@ -96,5 +143,31 @@ mod tests {
     #[test]
     fn detect_returns_nonzero() {
         assert!(detect_total_memory_gb() > 0);
+    }
+
+    #[test]
+    fn ram_4gb_picks_small() {
+        assert!(matches!(ModelSize::for_ram(4), ModelSize::Small));
+    }
+
+    #[test]
+    fn ram_8gb_picks_small() {
+        assert!(matches!(ModelSize::for_ram(8), ModelSize::Small));
+    }
+
+    #[test]
+    fn ram_16gb_picks_large() {
+        assert!(matches!(ModelSize::for_ram(16), ModelSize::Large));
+    }
+
+    #[test]
+    fn ram_64gb_picks_large() {
+        assert!(matches!(ModelSize::for_ram(64), ModelSize::Large));
+    }
+
+    #[test]
+    fn tag_strings_match_ollama_registry() {
+        assert_eq!(ModelSize::Small.ollama_tag(), "gemma4:e2b");
+        assert_eq!(ModelSize::Large.ollama_tag(), "gemma4:e4b");
     }
 }
