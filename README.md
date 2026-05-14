@@ -174,6 +174,26 @@ hdiutil create \
 
   When a cloud provider is selected, the bundled local Ollama is **not**
   spawned, saving ~9 GB of model download and ~2 GB of RAM at runtime.
+
+  ### Settings UI (SP-3)
+
+  Click the ⚙ button in the app header to pick a provider, paste an API key,
+  and choose models. API keys are stored in the macOS Keychain under the
+  service `com.canvasremedy.desktop.api-keys` — never on disk in any config
+  file. Verify with:
+
+  ```bash
+  security find-generic-password \
+      -s "com.canvasremedy.desktop.api-keys" \
+      -a "openrouter"
+  ```
+
+  Provider selection (but **not** the key) is persisted to
+  `~/Library/Application Support/com.canvasremedy.desktop/provider.json`.
+
+  The "Test connection" button hits the provider's `/v1/models` endpoint
+  (or `/api/tags` for Ollama Cloud) with the provided key — a 200 confirms
+  the key is valid.
 - **LiteParse** — installed via `npm install @llamaindex/liteparse` into
   `vendor/liteparse/node_modules/`, with a portable Node 20 runtime and a
   `liteparse` shell shim alongside. The Rust shell prepends `vendor/liteparse/`
