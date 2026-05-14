@@ -26,18 +26,18 @@ class Settings:
     ollama_api_key: str = "ollama"  # placeholder; Ollama ignores it
 
     # Model tags. Keep them configurable — users can swap in any Ollama
-    # model without rebuilding. Default to qwen3.5:4b, which is multimodal
-    # (text + image) in a single 3.4 GB download, 256K context. Pulled from
-    # ollama.com/library/qwen3.5:4b on first launch.
-    ollama_text_model: str = "qwen3.5:4b"
-    ollama_vision_model: str = "qwen3.5:4b"
+    # model without rebuilding. Default to gemma4:e4b, which is multimodal
+    # (text + image + audio) in a single 9.6 GB download, 128K context.
+    # Pulled from ollama.com/library/gemma4 on first launch.
+    ollama_text_model: str = "gemma4:e4b"
+    ollama_vision_model: str = "gemma4:e4b"
 
     # KV cache context length passed to Ollama via `options.num_ctx` on every
     # chat completion. The Rust shell detects installed RAM and sets this
     # at sidecar spawn time: 8k (≤8 GB), 32k (9–16 GB), 64k (17–32 GB),
-    # 128k (33–64 GB), 256k (65+ GB). 0 means "don't pass it" — let Ollama
-    # use its default (which is whatever the Modelfile specifies, normally
-    # 4k or 8k). Users can override at runtime via CRD_OLLAMA_NUM_CTX.
+    # 128k (33+ GB — also gemma4:e4b's model max). 0 means "don't pass it" —
+    # let Ollama use its default (which is whatever the Modelfile specifies,
+    # normally 4k or 8k). Users can override at runtime via CRD_OLLAMA_NUM_CTX.
     ollama_num_ctx: int = 0
 
     # --- AI scheduler ---

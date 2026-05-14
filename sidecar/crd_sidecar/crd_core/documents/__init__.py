@@ -20,7 +20,7 @@ async def convert_document_to_html(
 ) -> str:
     """One-shot: parse a document file with LiteParse, convert to accessible HTML.
 
-    Uses the LLM defaults from crd_core.config (qwen3.5:4b by default).
+    Uses the LLM defaults from crd_core.config (gemma4:e4b by default).
     Blocks until the whole document is processed. A 300+-page document
     can take minutes — the Tauri shell should show a spinner or phase
     event while this runs; streaming progress through the pipeline is

@@ -9,7 +9,7 @@
 //! - Health-checking `/api/tags` until it's live (30-second budget)
 //! - Exposing the port via Tauri managed state so other commands (and the
 //!   sidecar spawner) can wire `CRD_OLLAMA_BASE_URL` correctly.
-//! - Pulling `qwen3.5:4b` on demand, streaming progress over a Tauri event.
+//! - Pulling `gemma4:e4b` on demand, streaming progress over a Tauri event.
 //! - Killing the child when the app exits.
 //!
 //! In dev (`cfg!(debug_assertions)`) we do nothing — the user's system Ollama
@@ -72,7 +72,7 @@ pub struct BundledOllamaStatus {
     pub error: Option<String>,
 }
 
-pub const DEFAULT_MODEL: &str = "qwen3.5:4b";
+pub const DEFAULT_MODEL: &str = "gemma4:e4b";
 
 /// Finds the bundled Ollama executable. Returns `None` in dev builds or when
 /// the resource isn't present (e.g. the user ran `cargo run` without a
@@ -226,8 +226,8 @@ async fn fetch_tags(base_url: &str) -> Result<Vec<String>, String> {
 }
 
 fn model_present(models: &[String], target: &str) -> bool {
-    // Ollama's /api/tags returns names like "qwen3.5:4b"; accept the exact
-    // tag or any name that shares the stem (`qwen3.5:4b-foo`).
+    // Ollama's /api/tags returns names like "gemma4:e4b"; accept the exact
+    // tag or any name that shares the stem (`gemma4:e4b-foo`).
     let stem = target.split(':').next().unwrap_or(target);
     let target_tag = target.to_string();
     models.iter().any(|m| {
@@ -477,19 +477,19 @@ mod tests {
 
     #[test]
     fn model_present_matches_exact() {
-        let models = vec!["qwen3.5:4b".to_string(), "nomic-embed-text:v1".into()];
-        assert!(model_present(&models, "qwen3.5:4b"));
+        let models = vec!["gemma4:e4b".to_string(), "nomic-embed-text:v1".into()];
+        assert!(model_present(&models, "gemma4:e4b"));
     }
 
     #[test]
     fn model_present_matches_stem() {
-        let models = vec!["qwen3.5:4b-q4".to_string()];
-        assert!(model_present(&models, "qwen3.5:4b"));
+        let models = vec!["gemma4:e4b-q4".to_string()];
+        assert!(model_present(&models, "gemma4:e4b"));
     }
 
     #[test]
     fn model_missing() {
         let models = vec!["llama3.2:1b".to_string()];
-        assert!(!model_present(&models, "qwen3.5:4b"));
+        assert!(!model_present(&models, "gemma4:e4b"));
     }
 }

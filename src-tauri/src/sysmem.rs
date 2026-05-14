@@ -1,10 +1,11 @@
-//! Detect installed RAM and pick a Qwen 3.5:4B KV-cache context length that
+//! Detect installed RAM and pick a Gemma 4 E4B KV-cache context length that
 //! won't crowd out the OS / app / Chromium / everything else.
 //!
-//! qwen3.5:4b weights are ~3.4 GB. KV cache at Q8 is roughly ~1 GB per 32k
-//! tokens; we size the context tier to keep the total AI footprint well
-//! under half of installed RAM so remediation can still run the browser +
-//! Python sidecar + docs pipeline concurrently.
+//! gemma4:e4b weights are ~9.6 GB and the model maxes out at 128k context.
+//! KV cache at Q8 is roughly ~1 GB per 32k tokens; we size the context tier
+//! to keep the total AI footprint well under half of installed RAM so
+//! remediation can still run the browser + Python sidecar + docs pipeline
+//! concurrently.
 //!
 //! Tiers are chosen conservatively on purpose — a user can always raise the
 //! cap via the `CRD_OLLAMA_NUM_CTX` env var.
@@ -54,8 +55,7 @@ fn pick_tier(total_gb: u64) -> ContextTier {
         0..=8 => (8_192, "tight — 8k context"),
         9..=16 => (32_768, "comfortable — 32k context"),
         17..=32 => (65_536, "generous — 64k context"),
-        33..=64 => (131_072, "spacious — 128k context"),
-        _ => (262_144, "full — 256k context"),
+        _ => (131_072, "spacious — 128k context (model max)"),
     };
     ContextTier {
         total_memory_gb: total_gb,
@@ -88,9 +88,9 @@ mod tests {
 
     #[test]
     fn max_is_model_ceiling() {
-        // Qwen 3.5:4b maxes at 256k regardless of available RAM.
-        assert_eq!(pick_tier(128).num_ctx, 262_144);
-        assert_eq!(pick_tier(512).num_ctx, 262_144);
+        // gemma4:e4b maxes at 128k regardless of available RAM.
+        assert_eq!(pick_tier(128).num_ctx, 131_072);
+        assert_eq!(pick_tier(512).num_ctx, 131_072);
     }
 
     #[test]
